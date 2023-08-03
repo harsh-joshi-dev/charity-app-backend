@@ -7,6 +7,8 @@ import {
   Put,
   Delete,
   HttpStatus,
+  NotFoundException,
+  HttpCode,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -24,63 +26,32 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   async createUser(
     @Body() createUserDto: CreateUserDto,
   ): Promise<SuccessResponse<User> | ErrorResponse> {
-    try {
-      const user = await this.userService.createUser(createUserDto);
-      return prepareSuccessResponse<User>(user, 'User created successfully');
-    } catch (error) {
-      if (
-        error.code === 11000 &&
-        error.keyPattern &&
-        error.keyPattern.email === 1
-      ) {
-        return prepareErrorResponse(
-          HttpStatus.CONFLICT,
-          'Email already exists',
-        );
-      }
-
-      return prepareErrorResponse(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Failed to create user',
-      );
-    }
+    const user = await this.userService.createUser(createUserDto);
+    return prepareSuccessResponse<User>(user, 'User created successfully');
   }
 
   @Get()
-  async getAllUsers(): Promise<SuccessResponse<User[]> | ErrorResponse> {
-    try {
-      const users = await this.userService.getAllUsers();
-      return prepareSuccessResponse<User[]>(
-        users,
-        'Users retrieved successfully',
-      );
-    } catch (error) {
-      return prepareErrorResponse(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Failed to get users',
-      );
-    }
+  async getAllUsers(): Promise<SuccessResponse<User[]>> {
+    const users = await this.userService.getAllUsers();
+    return prepareSuccessResponse<User[]>(
+      users,
+      'Users retrieved successfully',
+    );
   }
 
   @Get(':id')
   async getUserById(
     @Param('id') id: string,
   ): Promise<SuccessResponse<User> | ErrorResponse> {
-    try {
-      const user = await this.userService.getUserById(id);
-      if (!user) {
-        return prepareErrorResponse(HttpStatus.NOT_FOUND, 'User not found');
-      }
-      return prepareSuccessResponse<User>(user, 'User retrieved successfully');
-    } catch (error) {
-      return prepareErrorResponse(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Failed to get user',
-      );
+    const user = await this.userService.getUserById(id);
+    if (!user) {
+      return prepareErrorResponse(HttpStatus.NOT_FOUND, 'User not found');
     }
+    return prepareSuccessResponse<User>(user, 'User retrieved successfully');
   }
 
   @Put(':id')
@@ -88,43 +59,18 @@ export class UserController {
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<SuccessResponse<User> | ErrorResponse> {
-    try {
-      const user = await this.userService.updateUser(id, updateUserDto);
-      if (!user) {
-        return prepareErrorResponse(HttpStatus.NOT_FOUND, 'User not found');
-      }
-      return prepareSuccessResponse<User>(user, 'User updated successfully');
-    } catch (error) {
-      if (
-        error.code === 11000 &&
-        error.keyPattern &&
-        error.keyPattern.email === 1
-      ) {
-        return prepareErrorResponse(
-          HttpStatus.CONFLICT,
-          'Email already exists',
-        );
-      }
-
-      return prepareErrorResponse(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Failed to update user',
-      );
+    const user = await this.userService.updateUser(id, updateUserDto);
+    if (!user) {
+      return prepareErrorResponse(HttpStatus.NOT_FOUND, 'User not found');
     }
+    return prepareSuccessResponse<User>(user, 'User updated successfully');
   }
 
   @Delete(':id')
   async deleteUser(
     @Param('id') id: string,
   ): Promise<SuccessResponse<string> | ErrorResponse> {
-    try {
-      await this.userService.deleteUser(id);
-      return prepareSuccessResponse<string>(id, 'User deleted successfully');
-    } catch (error) {
-      return prepareErrorResponse(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Failed to delete user',
-      );
-    }
+    await this.userService.deleteUser(id);
+    return prepareSuccessResponse<string>(id, 'User deleted successfully');
   }
 }
